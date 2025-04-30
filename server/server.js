@@ -1,29 +1,5 @@
-const express = require('express');
-const app = express();
-
-const dotenv = require("dotenv");
-dotenv.config({ path: './config.env' });
+const app = require('./app.js');
 const db = require('./db/db.js');
-
-
-
-
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-
-
-
-
-
-// app.use((req, res, next) => {
-//   return next(new AppError(`Couldn't find ${req.originalUrl} with method ${req.method}`, 404));
-// });
-
-// app.use(errorHandler); // Global error handling middleware
-
-
-app.set('trust proxy', 1);
-
 
 process.on('SIGINT', () => {
   console.log("Closing database connection...");
@@ -37,13 +13,7 @@ process.on('SIGINT', () => {
   });
 });
 
-
-
-
-
-
-
-
-app.listen(5000, () => {
-  console.log('Server is running on port 5000');
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
 });
