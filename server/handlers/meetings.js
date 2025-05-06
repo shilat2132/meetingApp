@@ -16,7 +16,7 @@ exports.getMeetings = async (req, res, next) => {
         ORDER BY meeting.date, meeting.start_time
     `;
     const values = [req.user.uid, req.user.uid]
-    await crud.getAll(query, values, req, res, next);
+    await crud.getAll(query, values, res, next);
 
 }
 

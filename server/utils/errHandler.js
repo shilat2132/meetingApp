@@ -5,6 +5,7 @@ const AppError = require('./AppError.js');
  */
 module.exports = (err, req, res, next) => {
   // Set default status code and status
+  console.log(err)
   err.statusCode = err.statusCode || 500;
   err.status = err.status || 'error';
   let error = { ...err };
@@ -19,6 +20,8 @@ module.exports = (err, req, res, next) => {
   if (error.code === 'ER_BAD_NULL_ERROR') error = handleMySQLNullInsert(error);
   if (error.code === 'ER_PARSE_ERROR') error = handleMySQLSyntaxError(error);
   if (error.code === 'ER_CHECK_CONSTRAINT_VIOLATED') error = handleMySQLCheckConstraintViolation(error);
+  if(error.code === 'WARN_DATA_TRUNCATED') error = handleSqlAttrError(error)
+
 
   if (
     error.code === 'UNKNOWN_CODE_PLEASE_REPORT' &&
@@ -52,7 +55,7 @@ module.exports = (err, req, res, next) => {
 // ------------ DEV + PROD SENDERS ------------
 
 const sendErrorDev = (err, req, res) => {
-  console.log(err)
+  // console.log(err)
   res.status(err.statusCode).json({
     status: err.status,
     error: err,
@@ -104,6 +107,15 @@ const handleMySQLNullInsert = (err) => {
 const handleMySQLSyntaxError = (err) => {
   return new AppError('Database syntax error.', 500);
 };
+
+const handleSqlAttrError = err=>{
+  const message = err.message;
+
+    const match = message.match(/Data truncated for column '(.+?)'/);
+    const column = match ? match[1] : null;
+
+    return new AppError(`Invalid data for column: ${column}`, 400);
+}
 
 // Check constraint violation
 const handleMySQLCheckConstraintViolation = (err) => {

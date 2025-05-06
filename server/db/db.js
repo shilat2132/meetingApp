@@ -78,18 +78,20 @@ db.connect((err) => {
       mid INT AUTO_INCREMENT PRIMARY KEY,
       eid INT NOT NULL,
       uid INT NOT NULL,
+      
       date DATE NOT NULL,
       start_time TIME NOT NULL,
       end_time TIME NOT NULL,
-      duration_time INT NOT NULL DEFAULT 1,
-      duration_unit ENUM('minutes', 'hours') NOT NULL DEFAULT 'hours',
+
       invitees_amount INT NOT NULL CHECK (invitees_amount > 0),
-      timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       invitees_ids JSON NOT NULL,
+
+      timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      
+
       FOREIGN KEY (eid) REFERENCES event_type(eid) ON DELETE CASCADE,
       FOREIGN KEY (uid) REFERENCES user(uid) ON DELETE CASCADE,
-      CHECK (start_time < end_time),
-      CHECK (duration_time > 0)
+      CHECK (start_time < end_time)
 
     )`
   ];

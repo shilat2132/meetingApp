@@ -11,4 +11,10 @@ router.route("/")
     .post(eventsHandlers.createEvent)
 
 
+router.route("/:eid")
+    .get(eventsHandlers.getEvent)
+    .patch(eventsHandlers.updateEvent)
+    .delete(eventsHandlers.deleteEvent)
+
+
 module.exports = router;

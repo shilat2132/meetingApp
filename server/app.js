@@ -13,11 +13,13 @@ const AppError = require('./utils/AppError.js');
 const authRoutes = require('./routes/auth.js');
 const meetingsRoutes = require("./routes/meetings.js");
 const eventsRoutes = require("./routes/events.js")
-
+const contactsRoutes = require("./routes/contacts.js")
 
 app.use('/api/auth', authRoutes);
 app.use('/api/meetings', meetingsRoutes);
 app.use("/api/events", eventsRoutes)
+app.use("/api/contacts", contactsRoutes)
+
 
 
 app.set('trust proxy', 1);

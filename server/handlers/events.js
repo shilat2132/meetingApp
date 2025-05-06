@@ -5,41 +5,62 @@ const db = require("../db/db")
 
 
 exports.getEvents = async (req, res, next)=>{
-
     const query = `SELECT * FROM event_type
-                    WHERE uid = (?)`
+                    WHERE uid = ?`
     const values = [req.user.uid]
-
-    await crud.getAll(query, values, req, res, next)
-    
+    await crud.getAll(query, values, res, next)
 }
 
+exports.getEvent = async (req, res, next)=>{
+    const query = `SELECT * FROM event_type
+                    WHERE uid = ? and eid = ?`
+    const values = [req.user.uid, req.params.eid]
+    await crud.getOne(query, values, res, next)
+}
 
 exports.createEvent = async (req, res, next)=>{
     let filterBody = utils.filterBody(req.body, "name", "duration_time", 
         "duration_unit", "type",  "max_invitees", "location")
     
     filterBody["uid"] = req.user.uid
+    await crud.insertOne("event_type", filterBody, res, next )
+}
+
+exports.updateEvent = async (req, res, next)=>{
+
+    let updatedValues;
+
+    if(req.query.toggleActive){
+        let is_active = req.query.toggleActive
+        const boolDict = {'true': 1, 'false': 0}
+        
 
     
-    let query = `INSERT into event_type 
-                    (${Object.keys(filterBody).join(", ")})
-                    VALUES (${Object.entries(filterBody).map(e=> '?').join(",")})
-                    `
-    
-    try {
-        const result = await db.query(query, Object.values(filterBody))
-
-        if (result.affectedRows !== 1) {
-            return next(new AppError('Failed to create user', 500));
+        is_active = boolDict[is_active]
+        if (is_active === undefined || is_active == null) {
+            return next(new AppError("is_active can only be true or false"))
         }
-
-        return res.status(201).json({
-            data: {
-                eid: result.insertId
-            }
-        })
-    } catch (err) {
-        return next(new AppError(err, 500))
+        
+        updatedValues = {is_active}
+    }else{
+        updatedValues = utils.filterBody(req.body, "name", "duration_time", 
+            "duration_unit", "type",  "max_invitees", "location")
     }
+    
+    console.log(updatedValues)
+    
+    let queryValues = Object.values(updatedValues)
+    queryValues.push(req.user.uid, req.params.eid)
+
+    const condition = 'uid = ? and eid= ?'
+    await crud.updateOne("event_type", condition, updatedValues, queryValues, res, next)
+
+}
+
+
+exports.deleteEvent = async (req, res, next)=>{
+
+    const condition = 'uid = ? and eid= ?'
+    const values = [req.user.uid, req.params.eid]
+    await crud.deleteOne("event_type", condition, values, res, next)
 }
