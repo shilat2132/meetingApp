@@ -33,6 +33,7 @@ db.connect((err) => {
       last_modified_by INT DEFAULT NULL,
       last_modified_date DATETIME DEFAULT NULL,
       created_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+
       FOREIGN KEY (manager) REFERENCES user(uid),
       FOREIGN KEY (last_modified_by) REFERENCES user(uid)
     )`,
@@ -53,6 +54,7 @@ db.connect((err) => {
       week_day ENUM('Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday') NOT NULL,
       start_time TIME NOT NULL,
       end_time TIME NOT NULL,
+
       PRIMARY KEY (uid, week_day),
       FOREIGN KEY (uid) REFERENCES user(uid) ON DELETE CASCADE,
       CHECK (start_time < end_time)
@@ -69,6 +71,7 @@ db.connect((err) => {
       type ENUM('one-on-one', 'group') NOT NULL,
       max_invitees INT DEFAULT 1 CHECK (max_invitees > 0),
       location ENUM('phone', 'in person') NOT NULL,
+      
       FOREIGN KEY (uid) REFERENCES user(uid) ON DELETE CASCADE,
       CHECK (duration_time > 0)
     )`,

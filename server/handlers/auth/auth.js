@@ -1,7 +1,7 @@
 const AppError = require('../../utils/AppError.js');
 const db = require('../../db/db.js');
 const jwt = require('jsonwebtoken');
-
+const crud = require("../crud.js")
 
 
 const signToken = id => jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRESIN })
@@ -43,7 +43,7 @@ exports.signUp = async (req, res, next) => {
     const values = [name, username, email, phone, role || 'user'];
 
     try {
-        const [result] = await db.query(query, values)
+        const result = await db.query(query, values)
 
         if (result.affectedRows !== 1) {
             return next(new AppError('Failed to create user', 500));
@@ -53,7 +53,7 @@ exports.signUp = async (req, res, next) => {
         createSendToken(newUser, req, 201, res);
 
     } catch (err) {
-        return next(new AppError(err, 500));
+        return next(err);
     }
 
 }
@@ -91,3 +91,5 @@ exports.logout = (req, res)=>{
       expires: new Date(Date.now() + 10 *1000), httpOnly: true })
       res.status(200).json({status: 'success'})
   }
+
+

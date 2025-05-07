@@ -47,10 +47,8 @@ exports.updateEvent = async (req, res, next)=>{
             "duration_unit", "type",  "max_invitees", "location")
     }
     
-    console.log(updatedValues)
     
-    let queryValues = Object.values(updatedValues)
-    queryValues.push(req.user.uid, req.params.eid)
+    let queryValues = [req.user.uid, req.params.eid]
 
     const condition = 'uid = ? and eid= ?'
     await crud.updateOne("event_type", condition, updatedValues, queryValues, res, next)

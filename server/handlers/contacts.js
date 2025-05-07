@@ -29,6 +29,7 @@ exports.getAContact = async (req, res, next)=>{
         WHERE (meeting.uid = ? AND JSON_CONTAINS(meeting.invitees_ids, JSON_ARRAY(?)))
                 OR
               (meeting.uid = ? AND JSON_CONTAINS(meeting.invitees_ids, JSON_ARRAY(?)))
+        ORDER BY meeting.date, meeting.start_time
     `
 
     const values = [req.user.uid, c2id, c2id, req.user.uid ]

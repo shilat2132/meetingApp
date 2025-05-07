@@ -1,13 +1,15 @@
 const express = require('express');
 const router = express.Router();
 
-const meetingsHandlers = require('../handlers/meetings');
 const authHandlers = require("../handlers/auth/middlewares")
-
+const availabilityHandlers = require("../handlers/availability")
 
 router.use(authHandlers.protect)
-router.route("/").get(meetingsHandlers.getMeetings)
-router.route("/:mid").delete(meetingsHandlers.cancelMeeting)
+router.route("/")
+    .get(availabilityHandlers.getAvailability)
+    .post(availabilityHandlers.updateAvailability)
+
+
 
 
 module.exports = router;

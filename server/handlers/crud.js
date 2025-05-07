@@ -8,6 +8,7 @@ exports.getAll = async (query, values, res, next) => {
         
         return res.status(200).json({
             status: 'success',
+            amount: docs.length,
             docs
         });
     } catch (err) {
@@ -64,11 +65,17 @@ exports.insertOne = async (tableName, body, res, next) => {
  * 
  *  - IMPORTANT: the last element in queryValues must be the id of the record that being updated
  */
-exports.updateOne = async (tableName, condition, updatedValues, queryValues, res, next) => {
+exports.updateOne = async (tableName, condition, updatedValues, queryValues, res, next, updateUser = false, req = null) => {
     try {
+        if (Object.keys(updatedValues).length === 0) {
+            return next(new AppError("You must provide valid, non-empty attributes for the update"))
+          }
          const query = `UPDATE ${tableName}
                     SET ${Object.keys(updatedValues).map(key=> `${key} = ?`)}
                     WHERE ${condition}`
+        
+        queryValues.unshift(...Object.values(updatedValues))
+        
         const result = await db.query(query, queryValues);
 
         if (result.affectedRows !== 1) {
@@ -77,6 +84,15 @@ exports.updateOne = async (tableName, condition, updatedValues, queryValues, res
         }
 
         const updatedId = parseInt(queryValues[queryValues.length - 1]);
+
+        // if this is the handler for updating user, we need to update his details in the req object
+        if(updateUser){
+            const query = 'SELECT uid, email, role FROM user WHERE uid = ?';
+           
+            const result = await db.query(query, [updatedId]);
+            req.user = result[0] || null;
+
+        }
         return res.status(201).json({
             status: 'success',
             data: {
@@ -95,9 +111,8 @@ exports.updateOne = async (tableName, condition, updatedValues, queryValues, res
  * @param condition - a string in the format of 'key1 = ? operator key2 = ? ....' for the WHERE clause. e.g: 'uid = ? and eid= ?'
  * @param values - the array values for the query, to fill the ?. 
  * 
- *  - IMPORTANT: the last element in values array must be the id of the record that being updated
  */
-exports.deleteOne = async (tableName, condition, values, res, next) =>{
+exports.deleteOne = async (tableName, condition, values, res, next, emails= null, msg=null) =>{
     try {
        const query =  `DELETE FROM ${tableName}
                         WHERE ${condition}`
@@ -107,13 +122,13 @@ exports.deleteOne = async (tableName, condition, values, res, next) =>{
            if (result.affectedRows !== 1) {
                return next(new AppError(`${tableName} wasn't found`, 500));
            }
+
+           if(emails){
+            // send the emails for each email in the array with the given msg
+           }
    
-           const updatedId = parseInt(values[values.length - 1]);
-           return res.status(201).json({
-               status: 'success',
-               data: {
-                   id: updatedId
-               }
+           return res.status(204).json({
+               status: 'success'
            });
        } catch (err) {
            // console.log(err)
