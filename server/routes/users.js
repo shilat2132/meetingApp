@@ -10,6 +10,8 @@ router.route("/")
     .patch(usersHandlers.updateUser)
     .delete(usersHandlers.deleteUser)
 
+router.get("/me", usersHandlers.getAUser)
+
 
 
 

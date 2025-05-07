@@ -16,6 +16,7 @@ const eventsRoutes = require("./routes/events.js")
 const contactsRoutes = require("./routes/contacts.js")
 const availabilityRoutes = require("./routes/availability.js")
 const usersRoutes = require("./routes/users.js")
+const bookingRoutes = require("./routes/booking.js")
 
 app.use('/api/auth', authRoutes);
 app.use('/api/meetings', meetingsRoutes);
@@ -23,6 +24,7 @@ app.use("/api/events", eventsRoutes)
 app.use("/api/contacts", contactsRoutes)
 app.use("/api/availability", availabilityRoutes)
 app.use("/api/users", usersRoutes)
+app.use("/api/booking", bookingRoutes)
 
 
 

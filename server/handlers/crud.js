@@ -19,9 +19,13 @@ exports.getAll = async (query, values, res, next) => {
 
 exports.getOne = async (query, values, res, next) => {
     try {
-        query += "LIMIT 1";
-        const doc = await db.query(query, values); 
+        let doc = await db.query(query, values); 
         
+        if(doc.length== 0){
+            return next(new AppError("Not found", 404))
+        }
+
+        doc = doc[0]
         return res.status(200).json({
             status: 'success',
             doc
