@@ -55,7 +55,11 @@ exports.insertOne = async (tableName, body, res, next) => {
             }
         });
     } catch (err) {
-        // console.log(err)
+        if(err.code && err.code === "ER_DUP_ENTRY"){
+            if(tableName === "contact"){
+                return next(new AppError("You already added that user as your contact", 400))
+            }
+        }
         return next(err);
     }
 };
@@ -75,7 +79,7 @@ exports.updateOne = async (tableName, condition, updatedValues, queryValues, res
             return next(new AppError("You must provide valid, non-empty attributes for the update"))
           }
          const query = `UPDATE ${tableName}
-                    SET ${Object.keys(updatedValues).map(key=> `${key} = ?`)}
+                    SET ${Object.keys(updatedValues).map(key=> `${key} = ?`).join(', ')}
                     WHERE ${condition}`
         
         queryValues.unshift(...Object.values(updatedValues))
@@ -116,7 +120,7 @@ exports.updateOne = async (tableName, condition, updatedValues, queryValues, res
  * @param values - the array values for the query, to fill the ?. 
  * 
  */
-exports.deleteOne = async (tableName, condition, values, res, next, emails= null, msg=null) =>{
+exports.deleteOne = async (tableName, condition, values, res, next) =>{
     try {
        const query =  `DELETE FROM ${tableName}
                         WHERE ${condition}`
@@ -127,9 +131,7 @@ exports.deleteOne = async (tableName, condition, values, res, next, emails= null
                return next(new AppError(`${tableName} wasn't found`, 500));
            }
 
-           if(emails){
-            // send the emails for each email in the array with the given msg
-           }
+        
    
            return res.status(204).json({
                status: 'success'

@@ -7,7 +7,7 @@ exports.getMeetings = async (req, res, next) => {
 
     // select meetings where the current user is the host(uid) or his id is in the invitees_ids 'array'
     const query = `
-        SELECT meeting.*, event_type.name, event_type.type, event_type.location
+        SELECT meeting.* , DATE_FORMAT(meeting.date, '%Y-%m-%d') AS date, event_type.name, event_type.type, event_type.location
         FROM meeting
         JOIN event_type ON meeting.eid = event_type.eid
         WHERE 
@@ -21,68 +21,68 @@ exports.getMeetings = async (req, res, next) => {
 }
 
 
-/**an handler for the host to cancel the meeting (delete the record) and send an email to all the invitees */
+/**an handler for the host to cancel the meeting (delete the record) and send an email to all the invitees or for an invitee to cancel participation */
+
 exports.cancelMeeting = async (req, res, next) => {
     try {
-        const condition = "uid = ? AND mid = ?"
-        const query = `SELECT uid, invitees_ids FROM meeting WHERE ${condition}`
-        const queryValues = [req.user.uid, req.params.mid]
-        const result = await db.query(query, queryValues)
+        const uid = req.user.uid;
+        const mid = req.params.mid;
 
-        if (result.length == 0) {
-            return next(new AppError("No meeting was found with the given id with you as the host", 404))
+
+        const query = `SELECT uid, invitees_ids FROM meeting WHERE mid = ?`;
+        const result = await db.query(query, [mid]);
+
+        if (result.length === 0) {
+            return next(new AppError("No meeting found with the given ID", 404));
         }
 
-        const meeting = result[0]
+        const meeting = result[0];
+        const isHost = meeting.uid === uid;
+
+        let invitees = JSON.parse(meeting.invitees_ids || '[]');
+        const isInvitee = invitees.includes(uid);
+
+        if (!isHost && !isInvitee) {
+            return next(new AppError("You are neither the host nor a participant of this meeting", 403));
+        }
+
+        // If host - delete the entire meeting
+        if (isHost) {
+            // Retrieve emails of invitees to notify them
+            if (invitees.length > 0) {
+                const emailsQuery = `SELECT email, name FROM user WHERE uid IN (?)`;
+                const emails = await db.query(emailsQuery, [invitees]);
+
+            // TODO: Send cancellation emails to all invitees
+
+            }
 
 
-        // Retrieve the invitees' emails and send them a cancellation email
-        const emailsQuery = `SELECT email, name FROM user WHERE uid in (?)`
-        const emails = await db.query(emailsQuery, meeting.invitees_ids)
+            await crud.deleteOne("meeting", "mid = ?", [mid], res, next);
+            return;
+        }
 
-        // when i'l set the email class, i'll send those emails to the emails array, and also send a different email for the host who canceled the meeting
+        // If invitee - remove from invitees_ids
+        const updatedInvitees = invitees.filter(id => id !== uid);
 
-        await crud.deleteOne("meeting", condition, queryValues, res, next, emails)
+        if (updatedInvitees.length === 0) {
+            // No invitees left, delete the meeting
+            await crud.deleteOne("meeting", "mid = ?", [mid], res, next);
+            return;
+        }
+
+        // Otherwise, update the meeting with the reduced invitees
+        const updateQuery = `UPDATE meeting SET invitees_ids = ? , spots_left = spots_left +1 WHERE mid = ?`;
+        await db.query(updateQuery, [JSON.stringify(updatedInvitees), mid]);
+
+        // TODO: Optionally notify host or others
+
+        return res.status(200).json({
+            status: 'success',
+            message: 'Your participation was successfully cancelled.'
+        });
+
     } catch (error) {
-        return next(error)
+        return next(error);
     }
-
-}
-
-
-/**an handler for the current user to cancel his participation in a certain meeting, only if he's invited to that meeting and is not the host */
-exports.cancelMeetingParticipation = async (req, res, next) => {
-   try {
-    const condition = "uid != ? AND mid = ? AND JSON_CONTAINS(invitees_ids, JSON_ARRAY(?))"
-    const query = `SELECT invitees_ids FROM meeting WHERE ${condition}`
-    const uid = req.user.uid
-
-    const queryValues = [uid, req.params.mid, uid]
-    const result = await db.query(query, queryValues)
-
-    if (result.length == 0) {
-        return next(new AppError("No meeting was found with the given id with you as a participant", 404))
-    }
-
-    const invitees = JSON.parse(result[0].invitees_ids);
-    const index = invitees.indexOf(uid);
-
-    invitees.splice(index, 1)
-
-    const updateQuery = `UPDATE meeting SET invitees_ids = ? WHERE mid = ?`;
-    await db.query(updateQuery, [JSON.stringify(invitees), req.params.mid]);
-
-    // here we need to send the email
-
-    return res.status(201).json({
-        status: 'success',
-    });
-   } catch (error) {
-        return next(error)
-   }
-
-
-
-}
-
-
+};

@@ -7,6 +7,8 @@ const authHandlers = require("../handlers/auth/middlewares")
 
 router.use(authHandlers.protect)
 router.get("/events", bookingHandlers.getEvents)
+router.post("/meetingsInRange", bookingHandlers.getMeetingsInRange)
+router.post("/bookMeeting", bookingHandlers.addMeeting)
 
 
 

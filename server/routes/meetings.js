@@ -7,7 +7,7 @@ const authHandlers = require("../handlers/auth/middlewares")
 
 router.use(authHandlers.protect)
 router.route("/").get(meetingsHandlers.getMeetings)
-router.route("/:mid").delete(meetingsHandlers.cancelMeeting).patch(meetingsHandlers.cancelMeetingParticipation)
+router.route("/:mid").delete(meetingsHandlers.cancelMeeting)
 
 
 module.exports = router;

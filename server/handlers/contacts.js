@@ -17,10 +17,24 @@ exports.getContacts = async (req, res, next)=>{
 }
 
 exports.getAContact = async (req, res, next)=>{
-    const c2id = req.params.uid
+    const c2id = Number(req.params.uid)
+    const currentUser = Number(req.user.uid)
 
-     // either the current user is the meeting host and the contact is one of the invitees or the other way around
-    const query = `
+
+
+    try {
+        // retrive the contact
+        const contactQ = `SELECT name, email FROM user WHERE uid = ?`
+        const contact = await db.query(contactQ, [c2id])
+
+        if(contact.length == 0){
+            return next(new AppError("User wasn't found", 404))
+        }
+
+
+        // retrive meetings with this contact
+         // either the current user is the meeting host and the contact is one of the invitees or the other way around
+        const query = `
         SELECT meeting.date, meeting.start_time, meeting.end_time, E.name
         FROM meeting
 
@@ -29,11 +43,20 @@ exports.getAContact = async (req, res, next)=>{
         WHERE (meeting.uid = ? AND JSON_CONTAINS(meeting.invitees_ids, JSON_ARRAY(?)))
                 OR
               (meeting.uid = ? AND JSON_CONTAINS(meeting.invitees_ids, JSON_ARRAY(?)))
+              OR
+              (JSON_CONTAINS(meeting.invitees_ids, JSON_ARRAY(?)) AND JSON_CONTAINS(meeting.invitees_ids, JSON_ARRAY(?)))
         ORDER BY meeting.date, meeting.start_time
     `
 
-    const values = [req.user.uid, c2id, c2id, req.user.uid ]
-    await crud.getOne(query, values, res, next )
+        const values = [currentUser, c2id, c2id, currentUser, currentUser, c2id]
+        const meetings = await db.query(query, values)
+        
+        const {name, email} = contact[0]
+        return res.status(200).json({contact: {name, email}, meetings})
+       
+    } catch (error) {
+        return next(error)
+    }
 }
 
 /** given an email in the request body - add the corresponing user as a contact of the current user */
@@ -47,10 +70,10 @@ if(!email){
 }
 
 const selectQuery = `SELECT uid FROM user
-                    WHERE uid != ? and email = ?
-                    LIMIT 1`
+                    WHERE email = ?
+                   `
 
-const selectValues = [req.user.uid, email]
+const selectValues = [email]
 
 
 try {
@@ -58,6 +81,10 @@ try {
 
     if(selectResult.length == 0){
         return next(new AppError("No user was found with that email", 404))
+    }
+
+    if(selectResult[0].uid === req.user.uid){
+        return next(new AppError("You can't add yourself as a contact", 404))
     }
 
     const body = {

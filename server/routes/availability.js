@@ -7,7 +7,7 @@ const availabilityHandlers = require("../handlers/availability")
 router.use(authHandlers.protect)
 router.route("/")
     .get(availabilityHandlers.getAvailability)
-    .post(availabilityHandlers.updateAvailability)
+    .patch(availabilityHandlers.updateAvailability)
 
 
 
