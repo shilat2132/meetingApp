@@ -84,6 +84,13 @@ const sendErrorProd = (err, req, res) => {
 // MySQL Duplicate entry
 const handleMySQLDuplicateEntry = (err) => {
   const value = err.message.match(/Duplicate entry '(.+?)'/)?.[1] || '';
+  if (err.message.includes('email')){
+    return new AppError(`There is already a user with the email ${value}`, 409);
+  }
+
+  if (err.message.includes('username')){
+    return new AppError(`There is already a user with the username ${value}`, 409);
+  }
   return new AppError(`The value "${value}" already exists in the database.`, 400);
 };
 

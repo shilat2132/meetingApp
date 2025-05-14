@@ -17,13 +17,22 @@ const createSendToken = (user, req, statusCode, res) => {
         Date.now() + process.env.JWT_COOKIE_EXPIRES_IN * 24 * 60 * 60 * 1000
     )
 
+    const isProduction = process.env.NODE_ENV === 'production';
 
-    res.cookie('jwt', token, {
-        expires: tokenExpiration,
-        httpOnly: true,
-        // only in production
-        secure: req.secure || req.headers['x-forwarded-proto'] === 'https'
-    });
+res.cookie('jwt', token, {
+  expires: tokenExpiration,
+  httpOnly: true,
+  secure: isProduction, 
+  sameSite: isProduction ? 'None' : 'Lax' 
+});
+
+
+    // res.cookie('jwt', token, {
+    //     expires: tokenExpiration,
+    //     httpOnly: true,
+    //     // only in production
+    //     secure: req.secure || req.headers['x-forwarded-proto'] === 'https' || process.env.NODE_ENV === 'production'
+    // });
 
     // Remove password from output
     res.status(statusCode).json({
@@ -49,6 +58,7 @@ exports.signUp = async (req, res, next) => {
             return next(new AppError('Failed to create user', 500));
         }
         
+        
         const newUser = { uid: result.insertId, name, username, email, phone };
         createSendToken(newUser, req, 201, res);
 
@@ -66,7 +76,7 @@ exports.login = async (req, res, next) => {
         return next(new AppError('Please provide username and email', 400));
     }
 
-    const query = `SELECT uid FROM user WHERE username = ? AND email = ?`;
+    const query = `SELECT * FROM user WHERE username = ? AND email = ?`;
     const values = [username, email];
 
     try {
@@ -75,7 +85,7 @@ exports.login = async (req, res, next) => {
         if (result.length === 0) {
             return next(new AppError('Incorrect username or email', 401));
         }
-        const user = { uid: result[0].uid, username, email };
+        const user = { ...result[0] };
         createSendToken(user, req, 200, res);
 
     } catch (error) {
