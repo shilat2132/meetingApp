@@ -5,7 +5,7 @@ const db = require("../db/db")
 
 /** retrives the availability of the user: week day ans start/end time */
 exports.getAvailability = async (req, res, next) => {
-
+    
     const query = `SELECT * FROM availability WHERE uid = ?`
 
     await crud.getAll(query, [req.user.uid], res, next)

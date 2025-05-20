@@ -16,7 +16,48 @@ exports.getMeetings = async (req, res, next) => {
         ORDER BY meeting.date, meeting.start_time
     `;
     const values = [req.user.uid, req.user.uid]
-    await crud.getAll(query, values, res, next);
+
+    try {
+    const meetings = await db.query(query, values)
+
+    // collect all invitees ids
+    const inviteeUidsSet = new Set();
+    meetings.forEach(meeting => {
+        const invitees = JSON.parse(meeting.invitees_ids || '[]');
+        invitees.forEach(id => inviteeUidsSet.add(id));
+        inviteeUidsSet.add(meeting.uid)
+    });
+
+    const inviteeUids = [...inviteeUidsSet];
+
+    // retrives all the invitees' info
+    let inviteesInfo = [];
+    if (inviteeUids.length > 0) {
+      const placeholders = inviteeUids.map(() => '?').join(', ');
+      const userQuery = `SELECT uid, name, email FROM user WHERE uid IN (${placeholders})`;
+      inviteesInfo = await db.query(userQuery, inviteeUids);
+    }
+
+    // map uid to his info
+    const userMap = {};
+    inviteesInfo.forEach(user => {
+      userMap[user.uid] = user;
+    });
+
+    // integrate the meetings with the invitees
+    const meetingsWithInvitees = meetings.map(meeting => {
+      const invitees = JSON.parse(meeting.invitees_ids || '[]');
+      return {
+        ...meeting,
+        host: userMap[meeting.uid],
+        invitees: invitees.map(id => userMap[id] || { uid: id, name: 'Unknown', email: '' })
+      };
+    });
+
+    res.status(200).json({docs: meetingsWithInvitees});
+  } catch (error) {
+    next(error);
+  }
 
 }
 

@@ -5,7 +5,6 @@ const db = require("../db/db")
 exports.getAll = async (query, values, res, next) => {
     try {
         const docs = await db.query(query, values); 
-        
         return res.status(200).json({
             status: 'success',
             amount: docs.length,
@@ -88,7 +87,7 @@ exports.updateOne = async (tableName, condition, updatedValues, queryValues, res
 
         if (result.affectedRows !== 1) {
             
-            return next(new AppError(`${tableName} wasn't found`, 500));
+            return next(new AppError(`${tableName} wasn't found`, 404));
         }
 
         const updatedId = parseInt(queryValues[queryValues.length - 1]);
@@ -137,7 +136,6 @@ exports.deleteOne = async (tableName, condition, values, res, next) =>{
                status: 'success'
            });
        } catch (err) {
-           // console.log(err)
            return next(err);
        }
 }

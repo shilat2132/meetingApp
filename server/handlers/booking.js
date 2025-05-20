@@ -16,7 +16,7 @@ exports.getEvents = async (req, res, next) => {
 
 
     try {
-        const user = await db.query(`SELECT uid FROM user WHERE email = ?`, [email])
+        const user = await db.query(`SELECT uid, name FROM user WHERE email = ?`, [email])
 
         if (user.length == 0) {
             return next(new AppError("No user found with that email address", 400))
@@ -42,6 +42,8 @@ exports.getEvents = async (req, res, next) => {
         return res.status(200).json({
             status: 'success',
             events_amount: events.length,
+            uid,
+            name: user[0].name,
             events,
             availability
         });

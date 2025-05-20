@@ -55,7 +55,7 @@ exports.updateEvent = async (req, res, next)=>{
 
     }else{
         updatedValues = utils.filterBody(req.body, "name", "duration_time", 
-            "duration_unit", "type",  "max_invitees", "location")
+            "duration_unit", "type",  "max_invitees", "location", "is_active")
     }
     
     
@@ -68,6 +68,7 @@ exports.updateEvent = async (req, res, next)=>{
 
 /** deletes event only if its one of the current user's events. deletes all the related meetings as a result of database settings */
 exports.deleteEvent = async (req, res, next)=>{
+
     const condition = 'uid = ? and eid= ?'
     const values = [req.user.uid, req.params.eid]
     await crud.deleteOne("event_type", condition, values, res, next)

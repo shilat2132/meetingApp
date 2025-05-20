@@ -35,7 +35,7 @@ exports.getAContact = async (req, res, next)=>{
         // retrive meetings with this contact
          // either the current user is the meeting host and the contact is one of the invitees or the other way around
         const query = `
-        SELECT meeting.date, meeting.start_time, meeting.end_time, E.name
+        SELECT meeting.date, meeting.start_time, meeting.end_time, E.name, meeting.mid
         FROM meeting
 
         JOIN event_type as E ON E.eid = meeting.eid
