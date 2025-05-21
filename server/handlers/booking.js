@@ -119,7 +119,7 @@ exports.getMeetingsInRange = async (req, res, next) => {
         const placeholders = datesArray.map(() => '?').join(', ');
 
         // selects the host's meetings to skip their hours in the available hours slots in the booking page
-        const meetingsQuery = `SELECT start_time, end_time, DATE_FORMAT(date, '%Y-%m-%d') AS date
+        const meetingsQuery = `SELECT mid, eid, spots_left, start_time, end_time, DATE_FORMAT(date, '%Y-%m-%d') AS date
                                 FROM meeting
                                 WHERE (uid = ? OR JSON_CONTAINS(meeting.invitees_ids, JSON_ARRAY(?)))
                                         AND date in (${placeholders})`
@@ -213,7 +213,6 @@ const updateMeeting = async (mid, uid, res, next) => {
  */
 exports.addMeeting = async (req, res, next) => {
     const { mid, eid, start_time, date } = req.body;
-
     if (mid) {
         return await updateMeeting(mid, req.user.uid, res, next);
     }
