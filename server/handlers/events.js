@@ -56,6 +56,7 @@ exports.updateEvent = async (req, res, next)=>{
     }else{
         updatedValues = utils.filterBody(req.body, "name", "duration_time", 
             "duration_unit", "type",  "max_invitees", "location", "is_active")
+        
     }
     
     

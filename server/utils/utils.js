@@ -15,6 +15,18 @@ exports.filterBody = (obj, ...allowedFields) =>{
     return newObj
 }
 
+/** validates time format for HH:MM OR HH:MM:SS */
+exports.isValidTime = (time) => {
+  return /^((0?\d)|(1\d)|(2[0-3])):[0-5]\d(:[0-5]\d)?$/.test(time);
+};
+
+
+/** checks that start time is before the end time */
+exports.isStartBeforeEnd = (start, end) => {
+  const [sh, sm] = start.split(':').map(Number);
+  const [eh, em] = end.split(':').map(Number);
+  return sh < eh || (sh === eh && sm < em);
+};
 
 /**
  * Calculates the end time given a start time, duration, and unit.

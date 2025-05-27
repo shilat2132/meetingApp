@@ -21,6 +21,10 @@ module.exports = (err, req, res, next) => {
   if (error.code === 'ER_PARSE_ERROR') error = handleMySQLSyntaxError(error);
   if (error.code === 'ER_CHECK_CONSTRAINT_VIOLATED') error = handleMySQLCheckConstraintViolation(error);
   if(error.code === 'WARN_DATA_TRUNCATED') error = handleSqlAttrError(error)
+    if (error.code === 'ER_NO_DEFAULT_FOR_FIELD') {
+  error = handleMySQLMissingRequiredField(error);
+}
+
 
 
   if (
@@ -110,6 +114,12 @@ const handleMySQLNullInsert = (err) => {
   return new AppError(`Field "${field}" cannot be null.`, 400);
 };
 
+const handleMySQLMissingRequiredField = (err) => {
+  const field = err?.sqlMessage?.match(/Field '(.+?)'/)?.[1] || 'unknown field';
+  return new AppError(`Field "${field}" is required and cannot be empty.`, 400);
+};
+
+
 // Bad SQL syntax (developer error)
 const handleMySQLSyntaxError = (err) => {
   return new AppError('Database syntax error.', 500);
@@ -129,8 +139,10 @@ const handleMySQLCheckConstraintViolation = (err) => {
   const constraintName = err.message.match(/constraint '(.+?)'/)?.[1];
 
   const constraintMessages = {
-    phoneConstraint: 'Phone number must be exactly 10 digits and contain only numbers.',
+    user_chk_1: 'Phone number must be exactly 10 digits and contain only numbers.',
     hoursConstraint: 'Meeting start time must be earlier than end time.',
+    event_type_chk_1: 'Event max invitees must be greater than 0.',
+    event_type_chk_2: 'Event duration time must be greater than 0.',
   };
 
   const message =

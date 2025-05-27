@@ -1,7 +1,7 @@
 const AppError = require("../utils/AppError")
 const crud = require('./crud')
 const db = require("../db/db")
-const { calculateEndTime } = require("../utils/utils")
+const { calculateEndTime, isValidTime } = require("../utils/utils")
 
 const daysDict = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 
@@ -153,14 +153,14 @@ exports.getMeetingsInRange = async (req, res, next) => {
  */
 const updateMeeting = async (mid, uid, res, next) => {
     try {
-        const meetingQuery = `SELECT uid, invitees_ids FROM meeting WHERE mid = ? AND spots_left > 0`
+        const meetingQuery = `SELECT uid, date, invitees_ids FROM meeting WHERE mid = ? AND spots_left > 0`
         const meeting = await db.query(meetingQuery, [mid])
 
         if (meeting.length === 0) {
             return next(new AppError("The meeting doesn't exist or it's full", 409))
         }
 
-
+        
         const invitees_ids = JSON.parse(meeting[0].invitees_ids)
         
         // prevents from the user to book himself twice to the same meeting
@@ -219,6 +219,14 @@ exports.addMeeting = async (req, res, next) => {
 
     if (!eid || !start_time || !date) {
         return next(new AppError("One of the details is missing. Please provide: event id, start time, and date or just meeting id if the meeting already exists", 400));
+    }
+
+    const today = new Date();
+    if( new Date(date) < today){
+        return next(new AppError("You can't book a meeting in the past", 400));
+    }
+    if(!isValidTime(start_time)){
+        return next(new AppError("Invalid time format. Expected H:MM or HH:MM or HH:MM:SS or H:MM:SS", 400));
     }
 
     //validates date

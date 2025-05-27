@@ -23,14 +23,7 @@ const tableQueries = [
     username VARCHAR(100) UNIQUE,
     email VARCHAR(100) UNIQUE NOT NULL,
     phone CHAR(10) NOT NULL CHECK (phone REGEXP '^[0-9]{10}$'),
-    role ENUM('user', 'manager') DEFAULT 'user',
-    active BOOLEAN DEFAULT TRUE,
-    manager INT DEFAULT NULL,
-    last_modified_by INT DEFAULT NULL,
-    last_modified_date DATETIME DEFAULT NULL,
-    created_date DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (manager) REFERENCES user(uid),
-    FOREIGN KEY (last_modified_by) REFERENCES user(uid)
+    created_date DATETIME DEFAULT CURRENT_TIMESTAMP
   )`,
 
   // Contact table

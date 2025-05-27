@@ -43,13 +43,13 @@ res.cookie('jwt', token, {
 }
 
 exports.signUp = async (req, res, next) => {
-    const { name, username, email, phone, role } = req.body;
+    const { name, username, email, phone } = req.body;
     if (!name || !username || !email || !phone) {
         return next(new AppError('Please provide all required fields', 400));
     }
 
-    const query = `INSERT INTO user (name, username, email, phone, role) VALUES (?, ?, ?, ?, ?)`;
-    const values = [name, username, email, phone, role || 'user'];
+    const query = `INSERT INTO user (name, username, email, phone) VALUES (?, ?, ?, ?)`;
+    const values = [name, username, email, phone];
 
     try {
         const result = await db.query(query, values)

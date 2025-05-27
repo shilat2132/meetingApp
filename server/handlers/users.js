@@ -9,7 +9,7 @@ exports.getUsers = async(req, res, next)=>{
 }
 
 exports.getAUser = async(req, res, next)=>{
-    const query = `SELECT uid, active, name, username, email, phone FROM user WHERE uid = ?`
+    const query = `SELECT uid, name, username, email, phone FROM user WHERE uid = ?`
     await crud.getOne(query, [req.user.uid], res, next)
 }
 

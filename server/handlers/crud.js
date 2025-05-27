@@ -94,7 +94,7 @@ exports.updateOne = async (tableName, condition, updatedValues, queryValues, res
 
         // if this is the handler for updating user, we need to update his details in the req object
         if(updateUser){
-            const query = 'SELECT uid, email, role FROM user WHERE uid = ?';
+            const query = 'SELECT uid, email FROM user WHERE uid = ?';
            
             const result = await db.query(query, [updatedId]);
             req.user = result[0] || null;
