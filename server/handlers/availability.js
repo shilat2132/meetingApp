@@ -70,9 +70,9 @@ exports.updateAvailability = async (req, res, next) => {
 
             await db.query(query, insertValues);
 
-            return res.status(200).json({ status: "success" })
+            
         }
-
+        return res.status(200).json({ status: "success" })
     } catch (error) {
         return next(error)
     }

@@ -6,7 +6,8 @@ const db = mysql.createPool({
   host: process.env.MYSQL_HOST,
   user: process.env.MYSQL_USER,
   password: process.env.MYSQL_PASSWORD,
-  database: process.env.MYSQL_DB_NAME
+  database: process.env.MYSQL_DB_NAME,
+  charset: 'utf8mb4'
 });
 
 // Promisify the query function to support async/await
@@ -51,7 +52,7 @@ const tableQueries = [
   `CREATE TABLE IF NOT EXISTS event_type (
     eid INT AUTO_INCREMENT PRIMARY KEY,
     uid INT NOT NULL,
-    name VARCHAR(100) NOT NULL,
+    name VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
     duration_time INT NOT NULL DEFAULT 1,
     duration_unit ENUM('minutes', 'hours') NOT NULL DEFAULT 'hours',
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
@@ -60,7 +61,7 @@ const tableQueries = [
     location ENUM('phone', 'in person') NOT NULL,
     FOREIGN KEY (uid) REFERENCES user(uid) ON DELETE CASCADE,
     CHECK (duration_time > 0)
-  )`,
+  ) CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci`,
 
   // Meeting table
   `CREATE TABLE IF NOT EXISTS meeting (
