@@ -1,6 +1,7 @@
 const AppError = require("../utils/AppError")
 const crud = require('./crud')
-const db = require("../db/db")
+const db = require("../db/db");
+const Email = require("../utils/Email");
 
 
 exports.getMeetings = async (req, res, next) => {
@@ -63,14 +64,13 @@ exports.getMeetings = async (req, res, next) => {
 
 
 /**an handler for the host to cancel the meeting (delete the record) and send an email to all the invitees or for an invitee to cancel participation */
-
 exports.cancelMeeting = async (req, res, next) => {
     try {
         const uid = req.user.uid;
         const mid = req.params.mid;
 
 
-        const query = `SELECT uid, invitees_ids FROM meeting WHERE mid = ?`;
+        const query = `SELECT uid, eid, invitees_ids, start_time, end_time, date FROM meeting WHERE mid = ?`;
         const result = await db.query(query, [mid]);
 
         if (result.length === 0) {
@@ -78,8 +78,10 @@ exports.cancelMeeting = async (req, res, next) => {
         }
 
         const meeting = result[0];
-        const isHost = meeting.uid === uid;
+         const {start_time, end_time, date, eid, uid: hostId} = meeting //used for email details
+        const isHost = hostId === uid;
 
+        // checks if current user is the host or invitee
         let invitees = JSON.parse(meeting.invitees_ids || '[]');
         const isInvitee = invitees.includes(uid);
 
@@ -87,6 +89,16 @@ exports.cancelMeeting = async (req, res, next) => {
             return next(new AppError("You are neither the host nor a participant of this meeting", 403));
         }
 
+
+        const eventQuery = `SELECT location, name FROM event_type WHERE eid = ?`
+        const eventRes = await db.query(eventQuery, [eid])
+        const {name: title, location} = eventRes[0]
+
+        const hostRes = await db.query(`SELECT email, name FROM user WHERE uid = ?`, [hostId])
+        const host = hostRes[0]
+        let meetingDetails = { mid, title, start_time, end_time, date, location}
+
+    
         // If host - delete the entire meeting
         if (isHost) {
             // Retrieve emails of invitees to notify them
@@ -94,7 +106,14 @@ exports.cancelMeeting = async (req, res, next) => {
                 const emailsQuery = `SELECT email, name FROM user WHERE uid IN (?)`;
                 const emails = await db.query(emailsQuery, [invitees]);
 
-            // TODO: Send cancellation emails to all invitees
+            // TODO: Send cancellation emails to all invitees and the host
+            meetingDetails.toEmails = [...emails, req.user]
+
+            try {
+                await new Email(req.user, host).sendCanceledMeeting(meetingDetails)
+            } catch (error) {
+                console.error("Error in sending email in /meetings/cancelMeetings of the host", error)
+            }
 
             }
 
@@ -107,7 +126,16 @@ exports.cancelMeeting = async (req, res, next) => {
         const updatedInvitees = invitees.filter(id => id !== uid);
 
         if (updatedInvitees.length === 0) {
-            // No invitees left, delete the meeting
+            // No invitees left, delete the meeting and email both the invitee and host
+
+            
+            
+             try {
+            meetingDetails.toEmails = [req.user, host]
+                await new Email(req.user, host).sendCanceledMeeting(meetingDetails)
+            } catch (error) {
+                console.error("Error in sending email in /meetings/cancelMeetings of the invitee", error)
+            }
             await crud.deleteOne("meeting", "mid = ?", [mid], res, next);
             return;
         }
@@ -116,8 +144,16 @@ exports.cancelMeeting = async (req, res, next) => {
         const updateQuery = `UPDATE meeting SET invitees_ids = ? , spots_left = spots_left +1 WHERE mid = ?`;
         await db.query(updateQuery, [JSON.stringify(updatedInvitees), mid]);
 
-        // TODO: Optionally notify host or others
+        // TODO: notify host or others
+        // when the invitee cancels his participation and he's not the last invitee - send an email only to him
+          try {
+            meetingDetails.toEmails = [req.user]
+                await new Email(req.user, host).sendCanceledMeeting(meetingDetails)
+            } catch (error) {
+                console.error("Error in sending email in /meetings/cancelMeetings of the invitee", error)
+            }
 
+        
         return res.status(200).json({
             status: 'success',
             message: 'Your participation was successfully cancelled.'

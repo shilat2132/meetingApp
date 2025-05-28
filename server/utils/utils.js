@@ -51,3 +51,36 @@ exports.calculateEndTime = (startTime, duration, unit) => {
     const pad = n => n.toString().padStart(2, "0");
     return `${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
 }
+
+exports.isBeforeToday = (date) =>{
+  const givenDate = new Date(date);
+  const today = new Date();
+
+  givenDate.setHours(0, 0, 0, 0);
+  today.setHours(0, 0, 0, 0);
+
+  return givenDate < today;
+}
+
+
+/**
+ * Formats a time string to "HH:MM" (zero-padded), accepting "H:MM:SS", "HH:MM:SS", "H:MM", or "HH:MM".
+ * @param {string} time - The time string.
+ * @returns {string} The formatted time string as "HH:MM".
+ */
+exports.formatToHHMM = (time) => {
+    const [h, m] = time.split(":");
+    return `${h.padStart(2, '0')}:${m.padStart(2, '0')}`;
+};
+
+/**
+ * Converts a Date object or date string to "YYYY-MM-DD" format.
+ * @param {Date|string} date - The date to format.
+ * @returns {string} The formatted date string.
+ */
+exports.formatDateToString = (date) => {
+
+    const d = (date instanceof Date) ? date : new Date(date);
+    const retDate = d.toISOString().split('T')[0];
+    return retDate
+};

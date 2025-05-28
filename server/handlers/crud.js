@@ -1,5 +1,6 @@
 const AppError = require("../utils/AppError")
-const db = require("../db/db")
+const db = require("../db/db");
+const Email = require("../utils/Email");
 
 
 exports.getAll = async (query, values, res, next) => {
@@ -35,7 +36,7 @@ exports.getOne = async (query, values, res, next) => {
 };
 
 
-exports.insertOne = async (tableName, body, res, next) => {
+exports.insertOne = async (tableName, body, res, next, meeting = null, req= null) => {
     try {
         const query = `INSERT into ${tableName} 
                     (${Object.keys(body).join(", ")})
@@ -45,6 +46,15 @@ exports.insertOne = async (tableName, body, res, next) => {
 
         if (result.affectedRows !== 1) {
             return next(new AppError('Insert failed.', 500));
+        }
+
+        if (meeting) {
+            meeting = {...meeting, mid: result.insertId}
+            try {
+                await new Email(req.user, meeting.host).sendScheduledMeeting(meeting)
+            } catch (error) {
+                console.error("Couldn't send an email in the booking. in crud.insertOne", error)
+            }
         }
 
         return res.status(201).json({
@@ -107,7 +117,6 @@ exports.updateOne = async (tableName, condition, updatedValues, queryValues, res
             }
         });
     } catch (err) {
-        // console.log(err)
         return next(err);
     }
 };

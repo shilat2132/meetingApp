@@ -48,7 +48,6 @@ exports.updateAvailability = async (req, res, next) => {
                 }
 
                 if (!isValidTime(day.start_time) || !isValidTime(day.end_time)) {
-                    console.log(day.start_time, day.end_time)
                     return next(new AppError("Invalid time format. Expected H:MM or HH:MM or HH:MM:SS or H:MM:SS", 400));
                 }
 

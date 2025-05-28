@@ -1,7 +1,8 @@
 const AppError = require('../../utils/AppError.js');
 const db = require('../../db/db.js');
 const jwt = require('jsonwebtoken');
-const crud = require("../crud.js")
+const crud = require("../crud.js");
+const Email = require('../../utils/Email.js');
 
 
 const signToken = id => jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRESIN })
@@ -60,6 +61,11 @@ exports.signUp = async (req, res, next) => {
         
         
         const newUser = { uid: result.insertId, name, username, email, phone };
+        try {
+            await new Email({email, name}).sendWelcomeMeetingUser()
+        } catch (error) {
+           console.error("Couldn't send email in signup")
+        }
         createSendToken(newUser, req, 201, res);
 
     } catch (err) {
