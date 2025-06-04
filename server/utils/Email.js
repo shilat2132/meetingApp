@@ -6,19 +6,28 @@ module.exports = class Email {
     constructor(user, host = null) {
         this.to = user.email;
         this.firstName = user.name.split(' ')[0];
-        this.from = `Calandar ${host?.email || '' }`;
+        this.from = `Calandar ${host?.email || process.env.SMTP_USER}`;
         this.host = host
     }
 
     newTransporter() {
         if (process.env.NODE_ENV === 'production') {
             return nodemailer.createTransport({
-                host: process.env.SENDINBLUE_HOST,
-                port: process.env.SENDINBLUE_PORT,
+                host: process.env.SMTP_HOST,
+                port:process.env.SMTP_PORT,
+                secureConnection: process.env.SMTP_SECURE,
+                pool: false,
+                debug: false,
+                logger: false,
                 auth: {
-                    user: process.env.SENDINBLUE_LOGIN,
-                    pass: process.env.SENDINBLUE_PASSWORD,
+                    type: process.env.SMTP_TYPE,
+                    user: process.env.SMTP_USER,
+                    pass: process.env.SMTP_PASS
                 },
+                ignoreTLS: process.env.SMTP_IGNORE_TLS === 'true',
+                tls: {
+                    ciphers: 'SSLv3'
+                }
             });
         }
 
@@ -40,38 +49,38 @@ module.exports = class Email {
         return [year, month, day, hour, minute];
     }
 
-    
-async send(subject, message, html, icsContent = null, icsFilename = 'invite.ics') {
-    const mailOptions = {
-        from: this.from,
-        to: this.to,
-        subject,
-        text: message,
-    };
 
-    if (html) {
-        mailOptions.html = html;
+    async send(subject, message, html, icsContent = null, icsFilename = 'invite.ics') {
+        const mailOptions = {
+            from: this.from,
+            to: this.to,
+            subject,
+            text: message,
+        };
+
+        if (html) {
+            mailOptions.html = html;
+        }
+
+        if (icsContent) {
+            const icsBuffer = Buffer.from(icsContent);
+
+            mailOptions.attachments = [{
+                filename: icsFilename,
+                content: icsBuffer,
+                contentType: 'text/calendar'
+            }];
+
+            mailOptions.alternatives = [{
+                contentType: 'text/calendar; method=REQUEST; charset=UTF-8',
+                contentDisposition: 'inline',
+                content: icsBuffer.toString('base64'),
+                contentEncoding: 'base64'
+            }];
+        }
+
+        await this.newTransporter().sendMail(mailOptions);
     }
-
-    if (icsContent) {
-        const icsBuffer = Buffer.from(icsContent);
-
-        mailOptions.attachments = [{
-            filename: icsFilename,
-            content: icsBuffer,
-            contentType: 'text/calendar'
-        }];
-
-        mailOptions.alternatives = [{
-            contentType: 'text/calendar; method=REQUEST; charset=UTF-8',
-            contentDisposition: 'inline',
-            content: icsBuffer.toString('base64'),
-            contentEncoding: 'base64'
-        }];
-    }
-
-    await this.newTransporter().sendMail(mailOptions);
-}
 
 
 
@@ -80,13 +89,13 @@ async send(subject, message, html, icsContent = null, icsFilename = 'invite.ics'
     async sendScheduledMeeting(meeting) {
         let { mid, title, start_time, end_time, date, location, message, attendees } = meeting;
 
-        
-    start_time = formatToHHMM(start_time)
-    end_time = formatToHHMM(end_time)
 
-    if(!this.host){
-        throw new Error("You must provide a host")
-    }
+        start_time = formatToHHMM(start_time)
+        end_time = formatToHHMM(end_time)
+
+        if (!this.host) {
+            throw new Error("You must provide a host")
+        }
         const event = {
             start: this.#buildDateArray(date, start_time),
             end: this.#buildDateArray(date, end_time),
@@ -116,77 +125,77 @@ async send(subject, message, html, icsContent = null, icsFilename = 'invite.ics'
                     Please cancel at least 24 hours in advance if you can't attend.
                 </p>`;
 
-           await this.send(
-            `Meeting Scheduled: ${title}`,
-            '',
-            html,
-            value,
-            `${title}.ics`
-        );
+            await this.send(
+                `Meeting Scheduled: ${title}`,
+                '',
+                html,
+                value,
+                `${title}.ics`
+            );
         });
     }
 
     /** the params are: meeting: {mid, title, start_time, end_time, date, location, message, toEmails}. it emails all the invitees */
-   async sendCanceledMeeting(meeting) {
-    let { mid, title, start_time, end_time, date, location, message, toEmails } = meeting;
+    async sendCanceledMeeting(meeting) {
+        let { mid, title, start_time, end_time, date, location, message, toEmails } = meeting;
 
-    start_time = formatToHHMM(start_time)
-    end_time = formatToHHMM(end_time)
+        start_time = formatToHHMM(start_time)
+        end_time = formatToHHMM(end_time)
 
-      if(!this.host){
-        throw new Error("You must provide a host")
-    }
+        if (!this.host) {
+            throw new Error("You must provide a host")
+        }
 
-    for (let user of toEmails) {
-        const email = user.email;
-        const firstName = user.name.split(' ')[0];
+        for (let user of toEmails) {
+            const email = user.email;
+            const firstName = user.name.split(' ')[0];
 
-        const event = {
-            start: this.#buildDateArray(date, start_time),
-            end: this.#buildDateArray(date, end_time),
-            title: title,
-            description: message || '',
-            location: location === 'phone' ? 'Phone Call' : 'In-person',
-            status: 'CANCELLED',
-            uid: `${mid}-${email}`,
-            organizer: this.host,
-            attendees: [{ name: firstName, email }]
-        };
+            const event = {
+                start: this.#buildDateArray(date, start_time),
+                end: this.#buildDateArray(date, end_time),
+                title: title,
+                description: message || '',
+                location: location === 'phone' ? 'Phone Call' : 'In-person',
+                status: 'CANCELLED',
+                uid: `${mid}-${email}`,
+                organizer: this.host,
+                attendees: [{ name: firstName, email }]
+            };
 
-        createEvent(event, async (err, value) => {
-            if (err) {
-                console.error('ICS error:', err);
-                return;
-            }
+            createEvent(event, async (err, value) => {
+                if (err) {
+                    console.error('ICS error:', err);
+                    return;
+                }
 
-            const html = `
+                const html = `
                 <p style="direction: ltr; text-align:left; font-size: 15px">
                     Hello ${firstName},<br/>
                     The meeting <strong>${title}</strong> with ${this.host.name} scheduled for ${formatDateToString(date)} (${start_time} - ${end_time}) has been 
                     <strong>cancelled</strong>.
                 </p>`;
 
-            const emailInstance = new Email(user);
-            await emailInstance.send(
-                `Meeting Canceled: ${title}`,
-                '',
-                html,
-                value,
-                `${title}_canceled.ics`
-            );
-        });
+                const emailInstance = new Email(user);
+                await emailInstance.send(
+                    `Meeting Canceled: ${title}`,
+                    '',
+                    html,
+                    value,
+                    `${title}_canceled.ics`
+                );
+            });
+        }
     }
-}
 
     async sendWelcomeMeetingUser() {
         const html = `
             <p style="direction: ltr; text-align:left; font-size: 15px">
                 Hello ${this.firstName},<br/><br/>
-                Welcome to <strong>Calandar</strong>!<br/>
+                Welcome to <strong>Brosh Calandar</strong>!<br/>
                 You can now schedule meetings, manage your availability, and stay on top of your time.<br/>
             </p>`;
 
-        await this.send("Welcome to FitMe - Your scheduling assistant", "", html);
-}
+        await this.send("Welcome to Brosh Calandar - Your scheduling assistant", "", html);
+    }
 
 };
