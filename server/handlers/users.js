@@ -23,7 +23,7 @@ exports.updateUser = async(req, res, next)=>{
 }
 
 
-/** deletes the current user. all of his meeting (with him as a host) would automatically be deleted as well as his events and availability. 
+/** deletes the current user and log him out. all of his meeting (with him as a host) would automatically be deleted as well as his events and availability. 
  *  - but meetings with him as invitee would be deleted in this handler manually  */
 exports.deleteUser = async (req, res, next) => {
   const uid = req.user.uid;
@@ -57,7 +57,10 @@ exports.deleteUser = async (req, res, next) => {
       );
     }
 
-    // 2. Delete the user from the user table
+    // 2. overwrite the jwt
+      res.cookie('jwt', 'logout', { expires: new Date(Date.now() + 10 *1000), httpOnly: true })
+
+    // 3. Delete the user from the user table
     await db.query(`DELETE FROM user WHERE uid = ?`, [uid]);
 
     res.status(200).json({ message: "User deleted successfully." });
