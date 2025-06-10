@@ -84,3 +84,27 @@ exports.formatDateToString = (date) => {
     const retDate = d.toISOString().split('T')[0];
     return retDate
 };
+
+
+
+exports.normalizeZoomLink = (input)=> {
+  const trimmed = input.trim();
+
+  // אם זה קישור אישי עם /my/
+  if (trimmed.startsWith("https://zoom.us/my/")) {
+    return trimmed;
+  }
+
+  // אם זה קישור רגיל עם /j/
+  if (trimmed.startsWith("https://zoom.us/j/")) {
+    return trimmed;
+  }
+
+  // אם זה מזהה פגישה עם רווחים, לדוגמה: "569 171 8831"
+  const numericOnly = trimmed.replace(/\s+/g, '');
+  if (/^\d{9,11}$/.test(numericOnly)) {
+    return `https://zoom.us/j/${numericOnly}`;
+  }
+
+  throw new Error("Invalid Zoom link or ID");
+}

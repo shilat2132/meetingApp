@@ -48,6 +48,11 @@ exports.signUp = async (req, res, next) => {
     if (!name || !username || !email || !phone) {
         return next(new AppError('Please provide all required fields', 400));
     }
+    
+    const regex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (!regex.test(email)) {
+        return next(new AppError('Invalid email format', 400));
+    }
 
     const query = `INSERT INTO user (name, username, email, phone) VALUES (?, ?, ?, ?)`;
     const values = [name, username, email, phone];

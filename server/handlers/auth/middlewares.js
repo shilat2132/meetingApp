@@ -22,7 +22,7 @@ exports.protect = async (req, res, next) => {
     // 2) Verification token
     const decoded = await promisify(jwt.verify)(token, process.env.JWT_SECRET)
 
-    const query = 'SELECT uid, email, name FROM user WHERE uid = ?';
+    const query = 'SELECT uid, email, name, zoom_link FROM user WHERE uid = ?';
 
 try {
     const result = await db.query(query, [decoded.id]);

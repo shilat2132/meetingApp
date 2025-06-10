@@ -24,6 +24,7 @@ const tableQueries = [
     name VARCHAR(100) NOT NULL,
     username VARCHAR(100) UNIQUE,
     email VARCHAR(100) UNIQUE NOT NULL,
+    zoom_link VARCHAR(255),
     phone CHAR(10) NOT NULL CHECK (phone REGEXP '^[0-9]{10}$'),
     created_date DATETIME DEFAULT CURRENT_TIMESTAMP
   )`,
@@ -59,7 +60,7 @@ const tableQueries = [
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
     type ENUM('one-on-one', 'group') NOT NULL,
     max_invitees INT DEFAULT 1 CHECK (max_invitees > 0),
-    location ENUM('phone', 'in person') NOT NULL,
+    location ENUM('phone', 'in person', 'zoom') NOT NULL,
     FOREIGN KEY (uid) REFERENCES user(uid) ON DELETE CASCADE,
     CHECK (duration_time > 0)
   ) CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci`,

@@ -180,30 +180,65 @@ const updateMeeting = async (mid, uid, res, next, req) => {
         }
 
         const conflictQuery = `
-      SELECT mid FROM meeting
-      WHERE date = ?
-        AND (
-              uid = ? OR
-              JSON_CONTAINS(invitees_ids, JSON_ARRAY(?))
-            )
-        AND (
-              (start_time < ? AND end_time > ?)
-            )
-        AND mid != ?
-    `;
+                            SELECT mid FROM meeting
+                            WHERE date = ?
+                                AND (
+                                    uid = ? OR
+                                    JSON_CONTAINS(invitees_ids, JSON_ARRAY(?))
+                                    )
+                                AND (
+                                    (start_time < ? AND end_time > ?)
+                                    )
+                                AND mid != ?
+                            `;
 
         const conflicts = await db.query(conflictQuery, [
             date,
             uid, uid,
             end_time, start_time,
-            mid 
+            mid
         ]);
 
         if (conflicts.length > 0) {
             return next(new AppError("You already have a meeting at this time.", 409));
         }
 
-        // insert the user id to the invitees and decrement the spots_left field
+  
+
+
+        const eventQuery = `SELECT name, location FROM event_type WHERE eid = ?`
+        const eventRes = await db.query(eventQuery, [eid])
+        const { name: title, location } = eventRes[0]
+
+
+        // retrive all the invitees' name and email for attendees in the email
+        const allInviteesIds = [...invitees_ids, uid];
+        const placeholders = allInviteesIds.map(() => '?').join(',');
+        const attendeesQuery = `
+            SELECT name, email 
+            FROM user 
+            WHERE uid IN (${placeholders})
+        `;
+        const attendees = await db.query(attendeesQuery, allInviteesIds);
+
+        const hostRes = await db.query(`SELECT email, name, phone, zoom_link FROM user WHERE uid = ?`, [hostId])
+        const host = hostRes[0]
+        const meetingDetails = {
+            mid,
+            title,
+            start_time,
+            end_time,
+            date,
+            location,
+            attendees
+        };
+
+        
+        if(location === 'zoom' && !host.zoom_link) {
+            return next(new AppError("The host hasn't set a zoom link for this event. therefore, it can't be scheduled", 400))
+        }
+
+              // insert the user id to the invitees and decrement the spots_left field
         const updateQuery = `
             UPDATE meeting
             SET 
@@ -218,33 +253,6 @@ const updateMeeting = async (mid, uid, res, next, req) => {
             return next(new AppError("Failed to update the meeting", 500));
         }
 
-
-        const eventQuery = `SELECT name, location FROM event_type WHERE eid = ?`
-        const eventRes = await db.query(eventQuery, [eid])
-        const {name: title, location} = eventRes[0]
-
-
-        // retrive all the invitees' name and email for attendees in the email
-        const allInviteesIds = [...invitees_ids, uid];
-        const placeholders = allInviteesIds.map(() => '?').join(',');
-        const attendeesQuery = `
-            SELECT name, email 
-            FROM user 
-            WHERE uid IN (${placeholders})
-        `;
-        const attendees = await db.query(attendeesQuery, allInviteesIds);
-
-        const hostRes = await db.query(`SELECT email, name FROM user WHERE uid = ?`, [hostId])
-        const host = hostRes[0]
-        const meetingDetails = {
-            mid,
-            title,
-            start_time,
-            end_time,
-            date,
-            location,
-            attendees 
-        };
         try {
             await new Email(req.user, host).sendScheduledMeeting(meetingDetails)
         } catch (error) {
@@ -317,7 +325,7 @@ exports.addMeeting = async (req, res, next) => {
         const hostId = Number(event.uid);
         const { location, name: title, duration_time, duration_unit } = event
 
-        
+
 
         if (hostId === req.user.uid) {
             return next(new AppError("You can't schedule a meeting with yourself ", 400))
@@ -375,9 +383,13 @@ exports.addMeeting = async (req, res, next) => {
         };
 
 
-        const hostRes = await db.query(`SELECT email, name FROM user WHERE uid = ?`, [hostId])
+        const hostRes = await db.query(`SELECT email, name, phone, zoom_link FROM user WHERE uid = ?`, [hostId])
         const host = hostRes[0]
         let meetingDetails = { location, title, start_time, end_time, date: sqlDate, host }
+
+         if(location === 'zoom' && !host.zoom_link) {
+            return next(new AppError("The host hasn't set a zoom link for this event. therefore, it can't be scheduled", 400))
+        }
 
         await crud.insertOne("meeting", meetingBody, res, next, meetingDetails, req);
 

@@ -11,7 +11,9 @@ module.exports = class Email {
     }
 
     newTransporter() {
+        console.log(process.env.NODE_ENV)
         if (process.env.NODE_ENV === 'production') {
+            console.log("Using production SMTP settings", process.env.SMTP_USER);
             return nodemailer.createTransport({
                 host: process.env.SMTP_HOST,
                 port:process.env.SMTP_PORT,
@@ -96,15 +98,23 @@ module.exports = class Email {
         if (!this.host) {
             throw new Error("You must provide a host")
         }
+
+         let extraInfo
+            if(location === 'zoom') {
+                extraInfo = `<a href="${this.host.zoom_link}" target="_blank">Join Zoom Meeting</a>`;
+            }else if (location === 'phone') {
+                extraInfo = `Call: <a href="tel:${this.host.phone}">${this.host.phone}</a>`;
+            }
+
         const event = {
             start: this.#buildDateArray(date, start_time),
             end: this.#buildDateArray(date, end_time),
             title: title,
-            description: message || '',
-            location: location === 'phone' ? 'Phone Call' : 'In-person',
+            description: `${message || ''}${extraInfo ? '\n\n' + extraInfo : ''}`,
+            location: location === 'phone' ? 'Phone Call' : location,
             status: 'CONFIRMED',
             uid: `${mid}-${this.to}`,
-            organizer: this.host,
+            organizer: {email: this.host.email, name: this.host.name},
             attendees: attendees || [{ name: this.firstName, email: this.to }]
         };
 
@@ -115,16 +125,19 @@ module.exports = class Email {
             }
 
 
+           
+
             const html = `
                 <p style="direction: ltr; text-align:left; font-size: 15px">
                     You scheduled a meeting: <strong>${title}</strong><br/>
                     Host: ${this.host.name}<br/>
                     Date: ${formatDateToString(date)}<br/>
                     Time: ${start_time} - ${end_time}<br/>
-                    Location: ${location}<br/>
+                    Location: ${location} ${extraInfo ? extraInfo : ""}<br/> 
                     Please cancel at least 24 hours in advance if you can't attend.
                 </p>`;
 
+                
             await this.send(
                 `Meeting Scheduled: ${title}`,
                 '',
@@ -155,10 +168,10 @@ module.exports = class Email {
                 end: this.#buildDateArray(date, end_time),
                 title: title,
                 description: message || '',
-                location: location === 'phone' ? 'Phone Call' : 'In-person',
+                location: location === 'phone' ? 'Phone Call' : location,
                 status: 'CANCELLED',
                 uid: `${mid}-${email}`,
-                organizer: this.host,
+                organizer: {email: this.host.email, name: this.host.name},
                 attendees: [{ name: firstName, email }]
             };
 

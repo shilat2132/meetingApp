@@ -4,7 +4,7 @@ const AppError = require("../utils/AppError")
 
 
 /** Get all events of the current user */
-exports.getEvents = async (req, res, next)=>{
+exports.getEvents = async (req, res, next) => {
     const query = `SELECT * FROM event_type
                     WHERE uid = ?`
     const values = [req.user.uid]
@@ -12,7 +12,7 @@ exports.getEvents = async (req, res, next)=>{
 }
 
 /** get an event with the given id only if it belongs to current user */
-exports.getEvent = async (req, res, next)=>{
+exports.getEvent = async (req, res, next) => {
     const query = `SELECT * FROM event_type
                     WHERE uid = ? and eid = ?`
     const values = [req.user.uid, req.params.eid]
@@ -22,44 +22,54 @@ exports.getEvent = async (req, res, next)=>{
 /** create a new event for current user
  *  - events with type of one-on-one can only have max_invitees = 1
  */
-exports.createEvent = async (req, res, next)=>{
-    let filterBody = utils.filterBody(req.body, "name", "duration_time", 
-        "duration_unit", "type",  "max_invitees", "location")
-    
+exports.createEvent = async (req, res, next) => {
+    let filterBody = utils.filterBody(req.body, "name", "duration_time",
+        "duration_unit", "type", "max_invitees", "location")
+
     filterBody["uid"] = req.user.uid
-    if(filterBody?.type === "one-on-one" && filterBody?.max_invitees > 1){
+    if (filterBody?.type === "one-on-one" && filterBody?.max_invitees > 1) {
         return next(new AppError("Only one invitee is allowed in one-on-one events", 400))
     }
-    await crud.insertOne("event_type", filterBody, res, next )
+
+    const userZoomLink = req.user.zoom_link
+    if (filterBody?.location === "zoom" && !userZoomLink) {
+        return next(new AppError("You must set your zoom link in your profile to create zoom events", 400))
+    }
+    await crud.insertOne("event_type", filterBody, res, next)
 }
 
 
 /** an handler for updating an event of the current user
  *  - either for toggling event's activity status or update events' details
  */
-exports.updateEvent = async (req, res, next)=>{
+exports.updateEvent = async (req, res, next) => {
     let updatedValues;
 
-    if(req.query.toggleActive){
+    if (req.query.toggleActive) {
         let is_active = req.query.toggleActive
-        const boolDict = {'true': 1, 'false': 0, 'True': 1, 'False': 0}
-        
+        const boolDict = { 'true': 1, 'false': 0, 'True': 1, 'False': 0 }
 
-    
+
+
         is_active = boolDict[is_active]
         if (is_active === undefined || is_active == null) {
             return next(new AppError("is_active can only be true or false"))
         }
-        
-        updatedValues = {is_active}
 
-    }else{
-        updatedValues = utils.filterBody(req.body, "name", "duration_time", 
-            "duration_unit", "type",  "max_invitees", "location", "is_active")
-        
+        updatedValues = { is_active }
+
+    } else {
+        updatedValues = utils.filterBody(req.body, "name", "duration_time",
+            "duration_unit", "type", "max_invitees", "location", "is_active")
+
+        const userZoomLink = req.user.zoom_link
+        if (updatedValues?.location === "zoom" && !userZoomLink) {
+            return next(new AppError("You must set your zoom link in your profile to create zoom events", 400))
+        }
+
     }
-    
-    
+
+
     let queryValues = [req.user.uid, req.params.eid]
 
     const condition = 'uid = ? and eid= ?'
@@ -68,7 +78,7 @@ exports.updateEvent = async (req, res, next)=>{
 }
 
 /** deletes event only if its one of the current user's events. deletes all the related meetings as a result of database settings */
-exports.deleteEvent = async (req, res, next)=>{
+exports.deleteEvent = async (req, res, next) => {
 
     const condition = 'uid = ? and eid= ?'
     const values = [req.user.uid, req.params.eid]

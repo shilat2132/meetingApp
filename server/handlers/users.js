@@ -1,7 +1,8 @@
 
 const db = require('../db/db.js');
 const crud = require("./crud.js")
-const utils = require("../utils/utils.js")
+const utils = require("../utils/utils.js");
+const AppError = require('../utils/AppError.js');
 
 exports.getUsers = async(req, res, next)=>{
     const query = `SELECT * FROM user`
@@ -9,13 +10,28 @@ exports.getUsers = async(req, res, next)=>{
 }
 
 exports.getAUser = async(req, res, next)=>{
-    const query = `SELECT uid, name, username, email, phone FROM user WHERE uid = ?`
+    const query = `SELECT uid, name, username, email, phone, zoom_link FROM user WHERE uid = ?`
     await crud.getOne(query, [req.user.uid], res, next)
 }
 
 exports.updateUser = async(req, res, next)=>{
-    const filteredBody = utils.filterBody(req.body, "name", "username", "email", "phone", "active")
+    const filteredBody = utils.filterBody(req.body, "name", "username", "email", "phone", "zoom_link")
 
+    if(filteredBody.email){
+      const regex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+      if (!regex.test(filteredBody.email)) {
+        return next(new AppError('Invalid email format', 400));
+    }
+    }
+
+    if(filteredBody.zoom_link){
+      try {
+        const zoomLink = utils.normalizeZoomLink(filteredBody.zoom_link);
+        filteredBody.zoom_link = zoomLink;
+      } catch (error) {
+        return next(new AppError("Invalid Zoom link format", 400));
+      }
+    }
 
     const condition = "uid = ?"
     const queryValues = [req.user.uid]
