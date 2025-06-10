@@ -2,7 +2,6 @@ const express = require('express');
 const app = express();
 const path = require('path');
 
-
 const cookieParser = require('cookie-parser');
 const dotenv = require('dotenv');
 
@@ -11,23 +10,38 @@ dotenv.config({ path: envFile });
 
 const cors = require('cors');
 
-
 app.use(cors({
-  origin:  process.env.CLIENT_DOMAIN,
+  origin: process.env.CLIENT_DOMAIN,
   credentials: true
 }));
 
 app.use(cookieParser());
-
-
-
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
 const errHandler = require("./utils/errHandler.js")
 const AppError = require('./utils/AppError.js');
 
+// Security middleware
+const rateLimit = require('express-rate-limit');
+app.use(rateLimit({
+  windowMs: 8 * 60 * 1000, // 15 minutes
+  max: 200 // limit each IP to 100 requests per windowMs
+}));
 
-// routes
+const helmet = require('helmet');
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "https://cdn.gpteng.co"],
+    }
+  }
+}));
+
+app.set('trust proxy', 1);
+
+// API routes FIRST - before static files!
 const authRoutes = require('./routes/auth.js');
 const meetingsRoutes = require("./routes/meetings.js");
 const eventsRoutes = require("./routes/events.js")
@@ -35,18 +49,6 @@ const contactsRoutes = require("./routes/contacts.js")
 const availabilityRoutes = require("./routes/availability.js")
 const usersRoutes = require("./routes/users.js")
 const bookingRoutes = require("./routes/booking.js")
-
-const rateLimit = require('express-rate-limit');
-app.use(rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100 // limit each IP to 100 requests per windowMs
-}));
-
-const helmet = require('helmet');
-app.use(helmet());
-
-app.set('trust proxy', 1);
-
 
 app.use('/api/auth', authRoutes);
 app.use('/api/meetings', meetingsRoutes);
@@ -56,21 +58,21 @@ app.use("/api/availability", availabilityRoutes)
 app.use("/api/users", usersRoutes)
 app.use("/api/booking", bookingRoutes)
 
-
-
-
-app.use(express.static(path.join(__dirname, 'client/dist')));
-
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'client/dist', 'index.html'));
+// 404 handler for API routes that don't exist
+app.use('/api/*splat', (req, res, next) => {
+  return next(new AppError(`API endpoint ${req.method} ${req.originalUrl} not found`, 404));
 });
 
-app.use((req, res, next) => {
-    return next(new AppError(`Couldn't ${req.method} ${req.originalUrl}, 404`));
-  });
-  
-  
-app.use(errHandler); // Global error handling middleware
+// Serve static files AFTER API routes
+app.use(express.static(path.join(__dirname, '../client/dist')));
 
+
+// Express 5 compatible catch-all route - use named wildcard instead of *
+app.get('/*splat', (req, res) => {
+  res.sendFile(path.join(__dirname, '../client/dist/index.html'));
+});
+
+// Global error handling middleware
+app.use(errHandler);
 
 module.exports = app;

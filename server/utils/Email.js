@@ -11,9 +11,7 @@ module.exports = class Email {
     }
 
     newTransporter() {
-        console.log(process.env.NODE_ENV)
         if (process.env.NODE_ENV === 'production') {
-            console.log("Using production SMTP settings", process.env.SMTP_USER);
             return nodemailer.createTransport({
                 host: process.env.SMTP_HOST,
                 port:process.env.SMTP_PORT,
@@ -120,7 +118,6 @@ module.exports = class Email {
 
         createEvent(event, async (err, value) => {
             if (err) {
-                console.error('ICS error:', err);
                 return;
             }
 
@@ -177,7 +174,6 @@ module.exports = class Email {
 
             createEvent(event, async (err, value) => {
                 if (err) {
-                    console.error('ICS error:', err);
                     return;
                 }
 
