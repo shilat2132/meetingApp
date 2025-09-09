@@ -14,13 +14,13 @@ module.exports = class Email {
         if (process.env.NODE_ENV === 'production') {
             return nodemailer.createTransport({
                 host: process.env.SMTP_HOST,
-                port:process.env.SMTP_PORT,
-                secureConnection: process.env.SMTP_SECURE,
+                port: Number(process.env.SMTP_PORT),
+                secure: process.env.SMTP_SECURE === 'true',
                 pool: false,
                 debug: false,
                 logger: false,
                 auth: {
-                    type: process.env.SMTP_TYPE,
+                    // type: process.env.SMTP_TYPE,
                     user: process.env.SMTP_USER,
                     pass: process.env.SMTP_PASS
                 },
