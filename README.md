@@ -40,11 +40,6 @@ The platform allows users to create event types, manage availability, and let ot
 - MySQL (SQL schemas included in `/database` folder)
 
 
----
-
-## 📂 Project Structure
-
-```
 
 
 ## ⚙️ Usage
@@ -63,7 +58,6 @@ Visitors follow these steps:
 3. Select an **available time slot**.
 4. Confirm the booking.
 
----
 
 ## 💾 Database
 
