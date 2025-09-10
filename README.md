@@ -1,12 +1,10 @@
 
-```markdown
 # 📅 Booking Management System
 
 A full-stack scheduling application inspired by **Calendly**, built during my internship.  
 The platform allows users to create event types, manage availability, and let others seamlessly book meetings online.
 
 
----
 
 ## 🚀 Features
 
@@ -28,7 +26,6 @@ The platform allows users to create event types, manage availability, and let ot
 - **Responsive Design**  
   Mobile-friendly layout using media queries for a great experience on all screen sizes.
 
----
 
 ## 🛠️ Tech Stack
 
