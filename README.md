@@ -133,6 +133,8 @@ SMTP_USER=calendar@yourdomain.com
 
 
 Create a `.env.development` file in the `client` folder with the following variable:
+
+```env
 VITE_API_BASE_URL=http://localhost
 ```
 
@@ -161,11 +163,9 @@ Developed by **Shilat Dahan** during internship as a scheduling solution project
 
 ---
 
-## 📜 License
+## License
+This project is licensed under the MIT License.
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-```
 
 
 
